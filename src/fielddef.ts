@@ -173,7 +173,7 @@ export interface ScaleFieldDef<F> extends FieldDef<F> {
    *
    * __Default value:__ `"ascending"`
    */
-  sort?: SortOrder | SortField<F> | null;
+  sort?: string[] | SortOrder | SortField<F> | null;
 }
 
 export interface PositionFieldDef<F> extends ScaleFieldDef<F> {

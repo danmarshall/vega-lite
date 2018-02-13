@@ -960,6 +960,12 @@
         "sort": {
           "anyOf": [
             {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
               "$ref": "#/definitions/SortOrder"
             },
             {
@@ -1159,6 +1165,12 @@
         },
         "sort": {
           "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             {
               "$ref": "#/definitions/SortOrder"
             },
@@ -2111,6 +2123,12 @@
         },
         "sort": {
           "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             {
               "$ref": "#/definitions/SortOrder"
             },
@@ -4209,6 +4227,12 @@
         },
         "sort": {
           "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
             {
               "$ref": "#/definitions/SortOrder"
             },
