@@ -3,6 +3,7 @@ import {Config} from './../config';
 import {AnyMark, isMarkDef} from './../mark';
 import {GenericUnitSpec, LayerSpec} from './../spec';
 import {BOXPLOT, BoxPlot, BOXPLOT_PARTS, BoxPlotConfigMixins, BoxPlotDef, normalizeBoxPlot} from './boxplot';
+import {CalloutConfigMixins} from './callout';
 import {ERRORBAR, ErrorBar, normalizeErrorBar} from './errorbar';
 
 
@@ -44,7 +45,7 @@ export type CompositeMarkDef = BoxPlotDef;
 
 export type CompositeAggregate = BoxPlot;
 
-export interface CompositeMarkConfigMixins extends BoxPlotConfigMixins {}
+export interface CompositeMarkConfigMixins extends BoxPlotConfigMixins, CalloutConfigMixins {}
 
 
 add(BOXPLOT, normalizeBoxPlot, BOXPLOT_PARTS);

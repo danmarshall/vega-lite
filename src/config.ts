@@ -270,6 +270,14 @@ export const defaultConfig: Config = {
     whisker: {}
   },
 
+
+  callout: {
+    calloutAngle: 45,
+    calloutOffset: 0,
+    calloutLength: 30,
+    labelOffset: 0
+  },
+
   scale: defaultScaleConfig,
   projection: {},
   axis: {},
