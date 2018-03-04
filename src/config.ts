@@ -277,6 +277,8 @@ export const defaultConfig: Config = {
     calloutLength: 30,
     labelOffset: 0
   },
+  calloutLabel: {color: 'black'},
+  calloutRule: {color: 'black'},
 
   scale: defaultScaleConfig,
   projection: {},

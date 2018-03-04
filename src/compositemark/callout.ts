@@ -1,30 +1,25 @@
 import {Config} from '../config';
 import {Encoding} from '../encoding';
 import * as log from '../log';
-import {MarkConfig, MarkDef} from '../mark';
+import {MarkConfig} from '../mark';
 import {GenericUnitSpec, LayerSpec} from '../spec';
-
 
 export const CALLOUT: 'callout' = 'callout';
 export type CALLOUT = typeof CALLOUT;
 
-export interface CalloutDef {
+export interface CalloutDef extends CalloutConfig {
   type: CALLOUT;
-  calloutAngle?: number;
-  calloutOffset?: number;
-  calloutLength?: number;
-  labelOffset?: number;
-  callout?: MarkDef;
-  label?: MarkDef;
+  callout?: MarkConfig;
+  label?: MarkConfig;
 }
 
 export function isCalloutDef(mark: CALLOUT | CalloutDef): mark is CalloutDef {
   return !!mark['type'];
 }
 
-export type CalloutStyle = 'callout-label' | 'callout-rule';
+export type CalloutStyle = 'calloutLabel' | 'calloutRule';
 
-export const CALLOUT_STYLES: CalloutStyle[] = ['callout-label', 'callout-rule'];
+export const CALLOUT_STYLES: CalloutStyle[] = ['calloutLabel', 'calloutRule'];
 
 export interface CalloutConfig extends MarkConfig {
   calloutAngle?: number;
@@ -39,12 +34,16 @@ export interface CalloutConfigMixins {
    * @hide
    */
   callout?: CalloutConfig;
+  calloutLabel?: MarkConfig;
+  calloutRule?: MarkConfig;
 }
 
 export const VL_ONLY_CALLOUT_CONFIG_PROPERTY_INDEX: {
   [k in keyof CalloutConfigMixins]?: (keyof CalloutConfigMixins[k])[]
 } = {
-  callout: ['calloutAngle', 'calloutOffset', 'calloutLength', 'labelOffset']
+  callout: ['calloutAngle', 'calloutOffset', 'calloutLength', 'labelOffset'],
+  calloutLabel: ['color'],
+  calloutRule: ['color']
 };
 
 export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, CALLOUT>, config: Config): LayerSpec {
@@ -59,16 +58,13 @@ export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, CALLOUT
   const calloutLength: number = mark.calloutLength ? mark.calloutLength : config.callout.calloutLength;
   const labelOffset: number = mark.labelOffset ? mark.labelOffset : config.callout.labelOffset;
 
-  const calloutOffsetCoordinate: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset);
-  const calloutLengthCoordinate: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset + calloutLength);
-  const labelOffsetCoordinate: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset + calloutLength + labelOffset);
+  const calloutOffsetCoor1: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset);
+  const calloutOffsetCoor2: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset + calloutLength);
+  const labelTotalOffsetCoor: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset + calloutLength + labelOffset);
 
-  const {text: textEncoding, ...encodingWithoutText} = encoding;
+  const {text: textEncoding, size: sizeEncoding, ...encodingWithoutTextAndSize} = encoding;
   if (!textEncoding) {
-    // throws warning since it must provide a text
-    log.warn('Should have a text encoding in composite mark callout');
-    // callout mark should have text encoding
-
+    log.warn('callout mark should have text encoding');
   }
 
   const returnedSpec: LayerSpec = {
@@ -77,24 +73,24 @@ export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, CALLOUT
       { // label
         mark: {
           type: 'text',
-          style: 'callout-label',
-          xOffset: labelOffsetCoordinate.x,
-          yOffset: labelOffsetCoordinate.y
+          style: 'calloutLabel',
+          xOffset: labelTotalOffsetCoor.x,
+          yOffset: labelTotalOffsetCoor.y
         },
         encoding
       }, { // callout
         mark: {
           type: 'rule',
-          style: 'callout-rule',
-          xOffset: calloutOffsetCoordinate.x,
-          yOffset: calloutOffsetCoordinate.y,
-          x2Offset: calloutLengthCoordinate.x,
-          y2Offset: calloutLengthCoordinate.y
+          style: 'calloutRule',
+          xOffset: calloutOffsetCoor1.x,
+          yOffset: calloutOffsetCoor1.y,
+          x2Offset: calloutOffsetCoor2.x,
+          y2Offset: calloutOffsetCoor2.y
         },
         encoding: {
           x2: encoding.x,
           y2: encoding.y,
-          ...encodingWithoutText
+          ...encodingWithoutTextAndSize
         }
       }
     ]
@@ -102,30 +98,7 @@ export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, CALLOUT
   return returnedSpec;
 }
 
-export function getCoordinateFromAngleAndLength(angle: number, length: number): {x: number, y: number} {
-  // tan(angle) = y/x
-  // x^2 + y^2 = length^2
-  angle = angle % 360;
-  const acuteAngle = angle % 90;
-  const radians: number = acuteAngle * Math.PI / 180;
-  const tangent: number = Math.tan(radians);
-  const x: number = Math.sqrt(Math.pow(length, 2) / (1 + Math.pow(tangent, 2)));
-  const y: number = x * tangent;
-  if (angle === 0) {
-    return {x: length, y: 0};
-  } else if (angle > 0 && angle < 90) {
-    return {x, y: -1 * y};
-  } else if (angle === 90) {
-    return {x: 0, y: -1 * length};
-  } else if (angle > 90 && angle < 180) {
-    return {x: -1 * x, y: -1 * y};
-  } else if (angle === 180) {
-    return {x: -1 * length, y: 0};
-  } else if (angle > 180 && angle < 270) {
-    return {x: -1 * x, y: -1 * y};
-  } else if (angle === 270) {
-    return {x: 0, y: length};
-  } else {
-    return {x, y};
-  }
+function getCoordinateFromAngleAndLength(angle: number, length: number): {x: number, y: number} {
+  const radian = angle * Math.PI / 180;
+  return {x: length * Math.cos(radian), y: -1 * length * Math.sin(radian)};
 }
