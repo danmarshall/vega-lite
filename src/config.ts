@@ -275,10 +275,10 @@ export const defaultConfig: Config = {
     calloutAngle: 45,
     calloutOffset: 0,
     calloutLength: 30,
-    labelOffset: 0
+    labelOffset: 0,
+    label: {},
+    line: {}
   },
-  calloutLabel: {color: 'black'},
-  calloutRule: {color: 'black'},
 
   scale: defaultScaleConfig,
   projection: {},

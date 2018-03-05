@@ -1,32 +1,53 @@
 import {Config} from '../config';
 import {Encoding} from '../encoding';
 import * as log from '../log';
-import {MarkConfig} from '../mark';
+import {GenericMarkDef, isMarkDef, MarkConfig} from '../mark';
 import {GenericUnitSpec, LayerSpec} from '../spec';
+import {Flag, keys} from '../util';
+import {getMarkDefMixins} from './common';
 
 export const CALLOUT: 'callout' = 'callout';
-export type CALLOUT = typeof CALLOUT;
+export type Callout = typeof CALLOUT;
 
-export interface CalloutDef extends CalloutConfig {
-  type: CALLOUT;
-  callout?: MarkConfig;
-  label?: MarkConfig;
-}
+export type CalloutPart = 'line' | 'label';
 
-export function isCalloutDef(mark: CALLOUT | CalloutDef): mark is CalloutDef {
-  return !!mark['type'];
-}
+const CALLOUT_PART_INDEX: Flag<CalloutPart> = {
+  line: 1,
+  label: 1
+};
 
-export type CalloutStyle = 'calloutLabel' | 'calloutRule';
+export const CALLOUT_PARTS = keys(CALLOUT_PART_INDEX);
 
-export const CALLOUT_STYLES: CalloutStyle[] = ['calloutLabel', 'calloutRule'];
+// TODO: Currently can't use `PartsMixins<CalloutPart>`
+// as the schema generator will fail
+export type CalloutPartsMinxins = {
+  [part in CalloutPart]?: MarkConfig
+};
 
-export interface CalloutConfig extends MarkConfig {
+export interface CalloutConfig extends CalloutPartsMinxins {
+  /**
+   * Angle of callout line.
+   * __Default value: `"45"`
+   */
   calloutAngle?: number;
+  /**
+   * Offset of callout line.
+   * __Default value: `"0"`
+   */
   calloutOffset?: number;
+  /**
+   * Length of callout length.
+   * __Default value: `"30"`
+   */
   calloutLength?: number;
+  /**
+   * Offset of callout label.
+   * __Default value: `"0"`
+   */
   labelOffset?: number;
 }
+
+export interface CalloutDef extends GenericMarkDef<Callout>, CalloutConfig {}
 
 export interface CalloutConfigMixins {
   /**
@@ -34,29 +55,18 @@ export interface CalloutConfigMixins {
    * @hide
    */
   callout?: CalloutConfig;
-  calloutLabel?: MarkConfig;
-  calloutRule?: MarkConfig;
 }
 
-export const VL_ONLY_CALLOUT_CONFIG_PROPERTY_INDEX: {
-  [k in keyof CalloutConfigMixins]?: (keyof CalloutConfigMixins[k])[]
-} = {
-  callout: ['calloutAngle', 'calloutOffset', 'calloutLength', 'labelOffset'],
-  calloutLabel: ['color'],
-  calloutRule: ['color']
-};
 
-export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, CALLOUT>, config: Config): LayerSpec {
+export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, Callout | CalloutDef>, config: Config): LayerSpec {
   // TODO:  determine what's the general rule for applying selection for composite marks
-  const {mark: mark, selection: _sel, projection: _p, encoding, ...outerSpec} = spec;
-  if (!isCalloutDef(mark)) {
-    return null;
-  }
+  const {mark, selection: _sel, projection: _p, encoding, ...outerSpec} = spec;
+  const markDef = isMarkDef(mark) ? mark : {type: mark};
 
-  const calloutAngle: number = mark.calloutAngle ? mark.calloutAngle : config.callout.calloutAngle;
-  const calloutOffset: number = mark.calloutOffset ? mark.calloutOffset : config.callout.calloutOffset;
-  const calloutLength: number = mark.calloutLength ? mark.calloutLength : config.callout.calloutLength;
-  const labelOffset: number = mark.labelOffset ? mark.labelOffset : config.callout.labelOffset;
+  const calloutAngle: number = markDef.calloutAngle || config.callout.calloutAngle;
+  const calloutOffset: number = markDef.calloutOffset || config.callout.calloutOffset;
+  const calloutLength: number = markDef.calloutLength || config.callout.calloutLength;
+  const labelOffset: number = markDef.labelOffset || config.callout.labelOffset;
 
   const calloutOffsetCoor1: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset);
   const calloutOffsetCoor2: {x: number, y: number} = getCoordinateFromAngleAndLength(calloutAngle, calloutOffset + calloutLength);
@@ -73,19 +83,19 @@ export function normalizeCallout(spec: GenericUnitSpec<Encoding<string>, CALLOUT
       { // label
         mark: {
           type: 'text',
-          style: 'calloutLabel',
           xOffset: labelTotalOffsetCoor.x,
-          yOffset: labelTotalOffsetCoor.y
+          yOffset: labelTotalOffsetCoor.y,
+          ...getMarkDefMixins<CalloutPartsMinxins>(markDef, 'label', config.callout)
         },
         encoding
       }, { // callout
         mark: {
           type: 'rule',
-          style: 'calloutRule',
           xOffset: calloutOffsetCoor1.x,
           yOffset: calloutOffsetCoor1.y,
           x2Offset: calloutOffsetCoor2.x,
-          y2Offset: calloutOffsetCoor2.y
+          y2Offset: calloutOffsetCoor2.y,
+          ...getMarkDefMixins<CalloutPartsMinxins>(markDef, 'line', config.callout)
         },
         encoding: {
           x2: encoding.x,
